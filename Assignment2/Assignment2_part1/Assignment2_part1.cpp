@@ -49,20 +49,20 @@ int main()
     templ = imread("template.PNG", 3);
 
 	namedWindow("MyVideo",WINDOW_AUTOSIZE);
-	namedWindow("MyVideo1",WINDOW_AUTOSIZE);
-	namedWindow("MyVideo2",WINDOW_AUTOSIZE);
-	namedWindow("MyVideo3",WINDOW_AUTOSIZE);
-	namedWindow("MyVideo4",WINDOW_AUTOSIZE);
-	namedWindow("Correlation",WINDOW_AUTOSIZE);
+    //namedWindow("MyVideo1",WINDOW_AUTOSIZE);
+    //namedWindow("MyVideo2",WINDOW_AUTOSIZE);
+    //namedWindow("MyVideo3",WINDOW_AUTOSIZE);
+    //namedWindow("MyVideo4",WINDOW_AUTOSIZE);
+    //namedWindow("Correlation",WINDOW_AUTOSIZE);
 	//namedWindow("Red Video",WINDOW_AUTOSIZE);
     imshow("Correlation", templ);
 
 
     moveWindow("MyVideo", 0,0);
-    moveWindow("MyVideo1", 0,480);
-    moveWindow("MyVideo2", 640,0);
-    moveWindow("MyVideo3", 640,300);
-    moveWindow("MyVideo4", 640,600);
+    //moveWindow("MyVideo1", 0,480);
+    //moveWindow("MyVideo2", 640,0);
+    //moveWindow("MyVideo3", 640,300);
+    //moveWindow("MyVideo4", 640,600);
 
 
 	while (1)
@@ -98,13 +98,15 @@ int main()
                 finalP = p;
             }
         }
-        if (max_index != -1)
-            addBoundingBox(resized_frame[max_index], finalP, 50, 50);
+        if (max_index != -1){
+            double factor = pow(0.75, max_index);
+            addBoundingBox(resized_frame[0], Point(finalP.x / factor, finalP.y / factor) , templ.cols / factor, templ.rows / factor);
+        }
 		imshow("MyVideo", resized_frame[0]);
-		imshow("MyVideo1", resized_frame[1]);
-		imshow("MyVideo2", resized_frame[2]);
-		imshow("MyVideo3", resized_frame[3]);
-		imshow("MyVideo4", resized_frame[4]);
+		//imshow("MyVideo1", resized_frame[1]);
+		//imshow("MyVideo2", resized_frame[2]);
+		//imshow("MyVideo3", resized_frame[3]);
+		//imshow("MyVideo4", resized_frame[4]);
 		//imshow("Red Video", red);
         imshow("Correlation", corr_mat);
 
@@ -129,8 +131,7 @@ void correlation(Mat & src, Mat & templ, Mat & dest, Point & max, float & maxInt
     for(int x = 0; x < dest.cols; x ++ ) {
         for(int y = 0; y < dest.rows; y ++ ) {
             temp = dest.at<float>(y, x);
-            //if (temp > maxIntensity && temp > 0.4) {
-            if (temp > maxIntensity) {
+            if (temp > maxIntensity && temp > 0.6) {
                 maxIntensity = temp;
                 max = Point(x, y);
             }

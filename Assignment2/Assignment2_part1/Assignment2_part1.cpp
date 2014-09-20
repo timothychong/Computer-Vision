@@ -23,8 +23,8 @@
 using namespace cv;
 using namespace std;
 
-void correlation(Mat & src, Mat & templ, Mat & dest);
 void addBoundingBox(Mat &src, Point p, int width, int height);
+void correlation(Mat & src, Mat & templ, Mat & dest, Point & max, float & maxIntensity);
 
 int main()
 {
@@ -59,9 +59,10 @@ int main()
              break;
         }
 
-        Point p = Point(10,10);
-        correlation(frame, templ, corr_mat);
-        addBoundingBox(frame, p, 50, 100);
+        Point p = Point(-1, -1);
+        float intensity;
+        correlation(frame, templ, corr_mat, p, intensity);
+        addBoundingBox(frame, p, templ.cols, templ.rows);
 		imshow("MyVideo", frame);
         imshow("Correlation", corr_mat);
 
@@ -78,24 +79,39 @@ int main()
 }
 
 
-Point correlation(Mat & src, Mat & templ, Mat & dest) {
+void correlation(Mat & src, Mat & templ, Mat & dest, Point & max, float & maxIntensity) {
     matchTemplate( src, templ, dest, CV_TM_CCOEFF_NORMED);
 
+    maxIntensity = 0;
+    float temp = 0;
+    for(int x = 0; x < dest.cols; x ++ ) {
+        for(int y = 0; y < dest.rows; y ++ ) {
+            temp = dest.at<float>(y, x);
+            if (temp > maxIntensity && temp > 0.5) {
+                maxIntensity = temp;
+                max = Point(x, y);
+            }
+        }
+    }
+   if (maxIntensity > 0.5) {
+        cout << max << endl;
+   }
 }
 
 void addBoundingBox(Mat &src, Point p, int width, int height) {
 
+    if (p.x == -1) return;
+
     Vec3b color = Vec3b(0,0,255);
 
-    int leftBound = (p.x - width/2);
+    int leftBound = p.x;
     leftBound = (leftBound < 0)? 0 : leftBound;
-    int rightBound = (p.x + width/2);
+    int rightBound = p.x + width;
     rightBound = (rightBound >= src.cols)? src.cols - 1 : rightBound;
-    int lowerBound = p.y - height/2;
+    int lowerBound = p.y;
     lowerBound = (lowerBound < 0)? 0 : lowerBound;
-    int upperBound = p.y + height/2;
+    int upperBound = p.y + height;
     upperBound = (upperBound >= src.rows)? src.rows - 1 : upperBound;
-
 
     for(int i = leftBound; i < rightBound; i++) {
         src.at<Vec3b>(upperBound, i) = color;

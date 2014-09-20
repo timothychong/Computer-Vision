@@ -18,6 +18,7 @@
 #include "opencv2/core/core.hpp"
 #include "opencv2/highgui/highgui.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
+#include <math.h>
 #include <iostream>
 
 using namespace cv;
@@ -37,20 +38,44 @@ int main()
         return -1;
     }
 
-	Mat frame;
     Mat corr_mat;
     Mat templ;
+    vector<Mat> resized_frame;
+
+    for (int i = 0; i < 5; i ++ ) {
+        resized_frame.push_back(Mat());
+    }
 
     templ = imread("template.PNG", 3);
 
 	namedWindow("MyVideo",WINDOW_AUTOSIZE);
+	namedWindow("MyVideo1",WINDOW_AUTOSIZE);
+	namedWindow("MyVideo2",WINDOW_AUTOSIZE);
+	namedWindow("MyVideo3",WINDOW_AUTOSIZE);
+	namedWindow("MyVideo4",WINDOW_AUTOSIZE);
 	namedWindow("Correlation",WINDOW_AUTOSIZE);
+	//namedWindow("Red Video",WINDOW_AUTOSIZE);
     imshow("Correlation", templ);
+
+
+    moveWindow("MyVideo", 0,0);
+    moveWindow("MyVideo1", 0,480);
+    moveWindow("MyVideo2", 640,0);
+    moveWindow("MyVideo3", 640,300);
+    moveWindow("MyVideo4", 640,600);
+
 
 	while (1)
     {
 		// read a new frame from video
-        bool bSuccess = cap.read(frame);
+        bool bSuccess = cap.read(resized_frame[0]);
+
+        Size s = resized_frame[0].size();
+        for (int i = 1; i < 5; i++) {
+            s.height *= 0.75;
+            s.width *= 0.75;
+            resize(resized_frame[0], resized_frame[i], Size(s.width, s.height), INTER_CUBIC);
+        }
 
 		//if not successful, break loop
         if (!bSuccess)
@@ -60,10 +85,27 @@ int main()
         }
 
         Point p = Point(-1, -1);
-        float intensity;
-        correlation(frame, templ, corr_mat, p, intensity);
-        addBoundingBox(frame, p, templ.cols, templ.rows);
-		imshow("MyVideo", frame);
+        Point finalP;
+        float max_intensity = 0;
+        float max_index = -1;
+        float temp;
+        for (int i = 0; i < 5; i++) {
+            p = Point(-1, -1);
+            correlation(resized_frame[i], templ, corr_mat, p, temp);
+            if (temp > max_intensity) {
+                max_intensity = temp;
+                max_index = i;
+                finalP = p;
+            }
+        }
+        if (max_index != -1)
+            addBoundingBox(resized_frame[max_index], finalP, 50, 50);
+		imshow("MyVideo", resized_frame[0]);
+		imshow("MyVideo1", resized_frame[1]);
+		imshow("MyVideo2", resized_frame[2]);
+		imshow("MyVideo3", resized_frame[3]);
+		imshow("MyVideo4", resized_frame[4]);
+		//imshow("Red Video", red);
         imshow("Correlation", corr_mat);
 
 		if (waitKey(30) == 27)
@@ -87,15 +129,13 @@ void correlation(Mat & src, Mat & templ, Mat & dest, Point & max, float & maxInt
     for(int x = 0; x < dest.cols; x ++ ) {
         for(int y = 0; y < dest.rows; y ++ ) {
             temp = dest.at<float>(y, x);
-            if (temp > maxIntensity && temp > 0.5) {
+            //if (temp > maxIntensity && temp > 0.4) {
+            if (temp > maxIntensity) {
                 maxIntensity = temp;
                 max = Point(x, y);
             }
         }
     }
-   if (maxIntensity > 0.5) {
-        cout << max << endl;
-   }
 }
 
 void addBoundingBox(Mat &src, Point p, int width, int height) {

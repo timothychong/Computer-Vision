@@ -45,6 +45,17 @@ int main()
     Mat dst;
 	namedWindow("MyVideo",WINDOW_AUTOSIZE);
 	namedWindow("Result",WINDOW_AUTOSIZE);
+	namedWindow("paper",WINDOW_AUTOSIZE);
+
+
+
+    //Templates
+    Mat paper = imread("template_paper.PNG", CV_LOAD_IMAGE_COLOR);
+    Mat paper_binary = Mat::zeros(paper.rows, paper.cols, CV_8UC1);
+    mySkinDetect(paper, paper_binary);
+    imshow("paper", paper_binary);
+    //Mat rock = imread("template_rock.PNG", CV_LOAD_IMAGE_COLOR);
+    //Mat scissors = imread("template_scissors.PNG", CV_LOAD_IMAGE_COLOR);
 
 	while (1)
     {
@@ -57,7 +68,7 @@ int main()
              cout << "Cannot read a frame from video stream" << endl;
              break;
         }
-        cap.read(dst);
+        dst = Mat::zeros(frame.rows, frame.cols, CV_8UC1);
         mySkinDetect(frame,dst);
 		imshow("MyVideo", frame);
 		imshow("Result", dst);
@@ -85,10 +96,7 @@ void mySkinDetect(Mat& src, Mat& dst) {
             Vec3b intensity = src.at<Vec3b>(i,j); //Vec3b is a vector of 3 uchar (unsigned character)
             int B = intensity[0]; int G = intensity[1]; int R = intensity[2];
             if ((R > 95 && G > 40 && B > 20) && (myMax(R,G,B) - myMin(R,G,B) > 15) && (abs(R-G) > 15) && (R > G) && (R > B)){
-                //dst.at<uchar>(i,j) = 255;
-                dst.at<Vec3b>(i,j)[0] =255;
-                dst.at<Vec3b>(i,j)[1] =255;
-                dst.at<Vec3b>(i,j)[2] =255;
+                dst.at<uchar>(i,j) = 255;
             }
         }
     }

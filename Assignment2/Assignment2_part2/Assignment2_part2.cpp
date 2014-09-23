@@ -1,14 +1,13 @@
 /**
-	CS585_Assignment2.cpp
-	@author:
-	@version:
+	CS585_Assignment2_part1.cpp
+	@author: Timothy Chong & Patrick W. Crawford
 
 	CS585 Image and Video Computing Fall 2014
 	Assignment 2
 	--------------
 	This program:
-		a) Tracks an object by template matching
-		b) Recognizes hand shapes or gestures and creates a graphical display
+		a) (Part 1) Tracks an object by template matching
+		b) (Part 2) Recognizes hand shapes or gestures and creates a graphical display
 	--------------
 	PART B
 */
@@ -19,6 +18,7 @@
 #include "opencv2/highgui/highgui.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
 #include <iostream>
+#include <time.h>
 
 
 using namespace cv;
@@ -35,10 +35,6 @@ void correlation(Mat & src, Mat & templ, Mat & dest, Point & max, float & maxInt
 int main()
 {
 	VideoCapture cap(0);
-	// reading image sequence for hand position,
-	// was going to have animated sequence, but was running oo slow.
-	//VideoCapture ani;
-	//ani.open("animation/animation_%04d.png");
 
 	// if not successful, exit program
     if (!cap.isOpened())
@@ -56,7 +52,8 @@ int main()
 
 	Mat ani_frame = imread("animation/animation_0005.png", CV_LOAD_IMAGE_COLOR);
     
-	//Templates
+	//Templates, images of rock, paper, and scissors
+	// convert to the binary form on runtime, but do only once
     Mat paper = imread("template_paper.PNG", CV_LOAD_IMAGE_COLOR);
     Mat paper_binary = Mat::zeros(paper.rows, paper.cols, CV_8UC1);
     mySkinDetect(paper, paper_binary);
@@ -89,17 +86,23 @@ int main()
 	int state=0;
 	int animation_frame;
 	int animation_set;
-	int frequency = 0;
+	
+	// to run heavy processing every frame, set to 0
+	// only 1/frequency frames run analysis
+	int frequency = 5;
 
 	// this is used for saying which gesture was last active.
 	// -1 no shape, 0 = paper, 1=Scissors, 2=Rock
 	float finalIndex = -1;
 
+	// clocks for timing purposes
+	 clock_t t1,t2;
+
 	// loop for every frame of the video
 	while (1)
     {
 		// this level runs every frame
-		
+		t1=clock();
 		// read a new frame from video
 		bool bSuccess = cap.read(frame);
 		//if not successful, break loop
@@ -111,23 +114,31 @@ int main()
 
 		if (watchdog >= frequency){
 			// this level only runs ever n frames
+			// watchdog from typical microprocessor style timers
 			watchdog = 0;
 			
 			dst = Mat::zeros(frame.rows, frame.cols, CV_8UC1);
-
 			cout << endl;
+			
+			// run the skin detection for the captured image
 			mySkinDetect(frame,dst);
 			Point p;
 			float maxIntensity;
 			Mat dest;
+			
+			// logic for selecting which 
 			float finalMax = 0;
 			finalIndex = -1;
+			
+			// run through each of the 3 possible hand shapes, run template matching on each
 			for (int i = 0 ; i < 3; i++) {
 				p = Point(-1,-1);
 				maxIntensity = 0;
+				
+				// run the ith template matching
 				correlation(dst, templates[i], dest, p,  maxIntensity);
-
-
+				
+				// assign extra weights found to make matching work better
 				if ( i == 0 ) {
 					maxIntensity *= 1.25; // correlation adjustment 1.8
 					cout << "Paper Matching Correlation: \t" << maxIntensity << endl;
@@ -141,7 +152,8 @@ int main()
 					cout << "Rock Matching Correlation: \t" << maxIntensity << endl;
 
 				}
-
+				
+				// create some threshold for recognizing a hand shape or not
 				if ( maxIntensity > finalMax && maxIntensity > 0.6) {
 					finalMax = maxIntensity;
 					finalIndex = i;
@@ -156,29 +168,19 @@ int main()
 			
 		}
 
-		// for testing debug colos, easy visualizaiton (change colo block fr matching)
-		/*
-		if (finalIndex != -1) {
-			for (int i = 0; i < 100; i ++ ) {
-				for (int j = 0; j < 100; j ++ ) {
-					frame.at<Vec3b>(i, j) = colors[finalIndex];
-				}
-			}
-		}
-		*/
-
 		// below runs every frame
-
-		// overlay the frame of he different hand jestures on the output image.
+		
+		// GUI
+		// overlay the frame of the different hand shapes on the output image.
 		ani_frame.copyTo(frame(Rect(170,frame.rows-100,300,100)));//,ani_frame,mask_image);
-		// showing which one was selected
+		
+		// showing which one was selected, by highlighting the matched index
+		// (finalIndex == -1 means no shape matched)
 		int tmp = finalIndex;
 		if (finalIndex != -1){
 			for (int x=0; x<100; x++){
 				for (int y=0; y<100; y++){
-					//Vec3b pixel = frame.at<Vec3b>(170+x*100,y);
 					frame.at<Vec3b>(y+frame.rows-100,170+x+finalIndex*100)[0] = 150;
-					//mask_image.at<uchar>(y, x+100*tmp) = 255;
 				}
 			}
 		}
@@ -191,9 +193,18 @@ int main()
 			cout << "esc key is pressed by user" << endl;
 			break;
 		}
+
+		
+	t2=clock();
+	float diff ((float)t2-(float)t1);
+	cout<< "Time difference: " << diff<<endl;
+	int x;
+	//cin >> x;
+
 	}
 
 	cap.release();
+
 	return 0;
 }
 

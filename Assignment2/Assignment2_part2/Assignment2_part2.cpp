@@ -228,31 +228,6 @@ void mySkinDetect(Mat& src, Mat& dst) {
     }
 }
 
-//Function that does frame differencing between the current frame and the previous frame
-void myFrameDifferencing(Mat& prev, Mat& curr, Mat& dst) {
-    //For more information on operation with arrays: http://docs.opencv.org/modules/core/doc/operations_on_arrays.html
-    //For more information on how to use background subtraction methods: http://docs.opencv.org/trunk/doc/tutorials/video/background_subtraction/background_subtraction.html
-    absdiff(prev, curr, dst);
-    Mat gs = dst.clone();
-    cvtColor(dst, gs, CV_BGR2GRAY);
-    dst = gs > 50;
-    Vec3b intensity = dst.at<Vec3b>(100,100);
-}
-
-//Function that accumulates the frame differences for a certain number of pairs of frames
-void myMotionEnergy(Vector<Mat> mh, Mat& dst) {
-    Mat mh0 = mh[0];
-    Mat mh1 = mh[1];
-    Mat mh2 = mh[2];
-
-    for (int i = 0; i < dst.rows; i++){
-        for (int j = 0; j < dst.cols; j++){
-            if (mh0.at<uchar>(i,j) == 255 || mh1.at<uchar>(i,j) == 255 ||mh2.at<uchar>(i,j) == 255){
-                dst.at<uchar>(i,j) = 255;
-            }
-        }
-    }
-}
 //Function that returns the maximum of 3 integers
 int myMax(int a, int b, int c) {
 	int m = a;

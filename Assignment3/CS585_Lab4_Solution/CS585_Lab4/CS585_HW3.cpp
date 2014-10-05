@@ -40,7 +40,7 @@ void thinning(Mat& im);
 int main(int argc, char **argv)
 {
 	// read image as grayscale
-    Mat img = imread("bcancer3.3.png"); if(!img.data) {
+    Mat img = imread("bcancer3.0.png"); if(!img.data) {
         cout << "File not found" << std::endl;
         return -1;
     }
@@ -207,28 +207,18 @@ void findRedFolds(Mat & src){
     Mat channel[3];
     split(src, channel);
     blur( channel[0], dst, Size(4,4) );
-    threshold(dst, dst, 170, 0, THRESH_TOZERO_INV);
 
-    //int histogram [256] = {0};
-    //for(int x = 0; x < src.rows; x ++ ) {
-        //for(int y = 0; y < src.cols; y ++ ) {
-            //histogram[src.at<Vec3b>(x,y)[0]] ++;
-        //}
-    //}
+    double average = 0;
+    for(int x = 0; x < src.rows; x ++ ) {
+        for(int y = 0; y < src.cols; y ++ ) {
+            average += src.at<Vec3b>(x,y)[0];
+        }
+    }
 
-    //for (int i = 0; i < 255; i++ ) {
-        //histogram[i] = histogram[i + 1] - histogram[i];
-    //}
+    average /= (src.rows * src.cols);
 
-    //for (int i = 0; i < 255; i++ ) {
-        //if ((histogram[i] > 0 && histogram[i + 1] < 0) || (histogram[i] < 0 && histogram[i + 1] > 0)){
-            //cout << i << endl;
-        //}
-    //}
+    threshold(dst, dst, average,  0, THRESH_TOZERO_INV);
 
-    //for (int i = 0; i < 256; i++ ) {
-        ////cout << histogram[i] << endl;
-    //}
 
     int erosion_size = 4;
     int dilation_size = 4;
@@ -253,7 +243,7 @@ void findRedFolds(Mat & src){
         RotatedRect rect = minAreaRect( Mat(contours[i] ));
         Size size = rect.size;
 
-        if ((contourArea(contours[i]) > 1000) && (size.height > (3 * size.width) || size.width > (3 * size.height)))  {
+        if ((contourArea(contours[i]) > 10000) && (size.height > (3 * size.width) || size.width > (3 * size.height)))  {
             drawContours(dst, contours, i, 	Scalar::all(255), CV_FILLED, 8, hierarchy);
         }
     }
@@ -264,7 +254,8 @@ void findRedFolds(Mat & src){
     thinning(img);
 
     namedWindow("Hi");
-    imshow("Hi", img);	// note img_bw is inverted here, as original processing made the forground white
+    imshow("Hi", img);
+    imwrite("abc.png", img);	// note img_bw is inverted here, as original processing made the forground white
 
 }
 

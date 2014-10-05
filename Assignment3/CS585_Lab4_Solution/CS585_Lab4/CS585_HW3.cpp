@@ -33,15 +33,21 @@ void findBiggestContour (Mat &, vector<vector<Point>> &, vector<Vec4i> &, int & 
 int calculateEulerNumber(Mat &);
 double getOrientation (vector<Point>);
 double calculateCircularity (Mat & src, vector<Point> & contour);
+void findRedFolds(Mat & src);
 
 int main(int argc, char **argv)
 {
 	// read image as grayscale
-    Mat img = imread("circle.jpg"); if(!img.data) {
+    Mat img = imread("bcancer3.0.png"); if(!img.data) {
         cout << "File not found" << std::endl;
         return -1;
     }
 
+
+    findRedFolds(img);
+
+    waitKey();
+    return 0;
     Mat im_gray;
     Mat binary;
 
@@ -49,6 +55,7 @@ int main(int argc, char **argv)
 
 	// invert the image
     bitwise_not ( im_gray, im_gray );
+
 
     convertToBinary(im_gray.clone(), binary);
 
@@ -59,7 +66,7 @@ int main(int argc, char **argv)
     int maxind = 0;
 
     findBiggestContour (binary, contours, hierarchy, maxsize, maxind);
-    Mat contour_output = Mat::zeros( binary.size(), CV_8UC3 );;
+    Mat contour_output = Mat::zeros( binary.size(), CV_8UC3 );
 
 	//// draw filled in largest object in black
     drawContours(contour_output, contours, maxind, 	Scalar::all(255), CV_FILLED, 8, hierarchy);
@@ -189,3 +196,45 @@ double calculateCircularity (Mat & src, vector<Point> & contour) {
     return emin / emax;
 
 }
+
+void findRedFolds(Mat & src){
+
+    Mat dst;
+
+    Mat channel[3];
+    split(src, channel);
+    threshold(channel[0], dst, 150, 0, THRESH_TOZERO_INV);
+    blur( dst, dst, Size(4,4) );
+    int erosion_size = 4;
+    int dilation_size = 4;
+
+    Mat element = getStructuringElement( MORPH_RECT,
+                                       Size( 2*erosion_size + 1, 2*erosion_size+1 ),
+                                       Point( erosion_size, erosion_size ) );
+    //perform erosions and dilations
+    convertToBinary(dst.clone(), dst);
+    erode(dst, dst, element, Point(-1, -1), 2);
+    dilate(dst, dst, element);
+
+    vector<vector<Point>> contours;
+     vector<Vec4i> hierarchy;
+
+    findContours( dst.clone(), contours, hierarchy, RETR_EXTERNAL, CV_CHAIN_APPROX_NONE );
+
+    dst = Mat::zeros( src.size(), CV_8UC3 );
+
+    for(int i = 0; i < contours.size(); i++) {
+        Size bound = minAreaRect( Mat(contours[i] )).size;
+        if (bound.height > (5 * bound.width) || bound.width > (5 * bound.height)) {
+            drawContours(dst, contours, i, 	Scalar::all(255), CV_FILLED, 8, hierarchy);
+        }
+    }
+
+    namedWindow("Hi");
+    imshow("Hi", dst);	// note img_bw is inverted here, as original processing made the forground white
+
+}
+
+
+
+

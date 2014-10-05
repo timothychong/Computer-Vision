@@ -34,14 +34,18 @@ int calculateEulerNumber(Mat &);
 double getOrientation (vector<Point>);
 double calculateCircularity (Mat & src, vector<Point> & contour);
 void findRedFolds(Mat & src);
+void thinningIteration(Mat& im, int iter);
+void thinning(Mat& im);
 
 int main(int argc, char **argv)
 {
 	// read image as grayscale
-    Mat img = imread("bcancer3.0.png"); if(!img.data) {
+    Mat img = imread("bcancer3.3.png"); if(!img.data) {
         cout << "File not found" << std::endl;
         return -1;
     }
+    namedWindow("Original");
+    imshow("Original", img);	// note img_bw is inverted here, as original processing made the forground white
 
 
     findRedFolds(img);
@@ -200,19 +204,41 @@ double calculateCircularity (Mat & src, vector<Point> & contour) {
 void findRedFolds(Mat & src){
 
     Mat dst;
-
     Mat channel[3];
     split(src, channel);
-    threshold(channel[0], dst, 150, 0, THRESH_TOZERO_INV);
-    blur( dst, dst, Size(4,4) );
+    blur( channel[0], dst, Size(4,4) );
+    threshold(dst, dst, 170, 0, THRESH_TOZERO_INV);
+
+    //int histogram [256] = {0};
+    //for(int x = 0; x < src.rows; x ++ ) {
+        //for(int y = 0; y < src.cols; y ++ ) {
+            //histogram[src.at<Vec3b>(x,y)[0]] ++;
+        //}
+    //}
+
+    //for (int i = 0; i < 255; i++ ) {
+        //histogram[i] = histogram[i + 1] - histogram[i];
+    //}
+
+    //for (int i = 0; i < 255; i++ ) {
+        //if ((histogram[i] > 0 && histogram[i + 1] < 0) || (histogram[i] < 0 && histogram[i + 1] > 0)){
+            //cout << i << endl;
+        //}
+    //}
+
+    //for (int i = 0; i < 256; i++ ) {
+        ////cout << histogram[i] << endl;
+    //}
+
     int erosion_size = 4;
     int dilation_size = 4;
+
 
     Mat element = getStructuringElement( MORPH_RECT,
                                        Size( 2*erosion_size + 1, 2*erosion_size+1 ),
                                        Point( erosion_size, erosion_size ) );
+
     //perform erosions and dilations
-    convertToBinary(dst.clone(), dst);
     erode(dst, dst, element, Point(-1, -1), 2);
     dilate(dst, dst, element);
 
@@ -221,20 +247,83 @@ void findRedFolds(Mat & src){
 
     findContours( dst.clone(), contours, hierarchy, RETR_EXTERNAL, CV_CHAIN_APPROX_NONE );
 
-    dst = Mat::zeros( src.size(), CV_8UC3 );
+    dst = Mat::zeros( src.size(), CV_8UC1 );
 
     for(int i = 0; i < contours.size(); i++) {
-        Size bound = minAreaRect( Mat(contours[i] )).size;
-        if (bound.height > (5 * bound.width) || bound.width > (5 * bound.height)) {
+        RotatedRect rect = minAreaRect( Mat(contours[i] ));
+        Size size = rect.size;
+
+        if ((contourArea(contours[i]) > 1000) && (size.height > (3 * size.width) || size.width > (3 * size.height)))  {
             drawContours(dst, contours, i, 	Scalar::all(255), CV_FILLED, 8, hierarchy);
         }
     }
 
+
+    Mat img = dst.clone();
+
+    thinning(img);
+
     namedWindow("Hi");
-    imshow("Hi", dst);	// note img_bw is inverted here, as original processing made the forground white
+    imshow("Hi", img);	// note img_bw is inverted here, as original processing made the forground white
 
 }
 
+//http://opencv-code.com/quick-tips/implementation-of-thinning-algorithm-in-opencv/
+void thinningIteration(Mat& im, int iter)
+{
+    Mat marker = Mat::zeros(im.size(), CV_8UC1);
+
+    for (int i = 1; i < im.rows-1; i++)
+    {
+        for (int j = 1; j < im.cols-1; j++)
+        {
+            uchar p2 = im.at<uchar>(i-1, j);
+            uchar p3 = im.at<uchar>(i-1, j+1);
+            uchar p4 = im.at<uchar>(i, j+1);
+            uchar p5 = im.at<uchar>(i+1, j+1);
+            uchar p6 = im.at<uchar>(i+1, j);
+            uchar p7 = im.at<uchar>(i+1, j-1);
+            uchar p8 = im.at<uchar>(i, j-1);
+            uchar p9 = im.at<uchar>(i-1, j-1);
+
+            int A  = (p2 == 0 && p3 == 1) + (p3 == 0 && p4 == 1) +
+                     (p4 == 0 && p5 == 1) + (p5 == 0 && p6 == 1) +
+                     (p6 == 0 && p7 == 1) + (p7 == 0 && p8 == 1) +
+                     (p8 == 0 && p9 == 1) + (p9 == 0 && p2 == 1);
+            int B  = p2 + p3 + p4 + p5 + p6 + p7 + p8 + p9;
+            int m1 = iter == 0 ? (p2 * p4 * p6) : (p2 * p4 * p8);
+            int m2 = iter == 0 ? (p4 * p6 * p8) : (p2 * p6 * p8);
+
+            if (A == 1 && (B >= 2 && B <= 6) && m1 == 0 && m2 == 0)
+                marker.at<uchar>(i,j) = 1;
+        }
+    }
+
+    im &= ~marker;
+}
+
+/**
+ * Function for thinning the given binary image
+ *
+ * @param  im  Binary image with range = 0-255
+ */
+void thinning(Mat& im)
+{
+    im /= 255;
+
+    Mat prev = Mat::zeros(im.size(), CV_8UC1);
+    Mat diff;
+
+    do {
+        thinningIteration(im, 0);
+        thinningIteration(im, 1);
+        absdiff(im, prev, diff);
+        im.copyTo(prev);
+    }
+    while (countNonZero(diff) > 0);
+
+    im *= 255;
+}
 
 
 

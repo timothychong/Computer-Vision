@@ -28,7 +28,6 @@ using namespace std;
 	@param binaryImg The source binary image (binary image contains pixels labeled 0 or 1 (not 255))
 	@param blobs Vector to store all blobs, each of which is stored as a vector of 2D x-y coordinates
 */
-void FindBinaryLargeObjects(const Mat &binary, vector <vector<Point2i>> &blobs);
 void convertToBinary (Mat &src, Mat &dst);
 void findBiggestContour (Mat &, vector<vector<Point>> &, vector<Vec4i> &, int & , int & );
 int calculateEulerNumber(Mat &);
@@ -38,8 +37,7 @@ double calculateCircularity (Mat & src, vector<Point> & contour);
 int main(int argc, char **argv)
 {
 	// read image as grayscale
-    Mat img = imread("bcancer2.png");
-    if(!img.data) {
+    Mat img = imread("circle.jpg"); if(!img.data) {
         cout << "File not found" << std::endl;
         return -1;
     }
@@ -69,11 +67,9 @@ int main(int argc, char **argv)
     // get information about the object:
     int area = maxsize;
     double orientation = getOrientation(contours[maxind]); // angle that the axis of least inertia makes with x-axis
-    int circulatiry = -1; // Emin/Emax
+    double circulatiry = calculateCircularity (contour_output, contours[maxind]) ; // Emin/Emax
     double perimeter = arcLength(contours[maxind],1); // perimeter of largest contour
-    int euler = calculateEulerNumber(binary);	// euler number, which in the way we are doing it now should always be 1 (one blob, no holes)
-    calculateCircularity (contour_output, contours[maxind]);
-
+    double euler = calculateEulerNumber(binary);	// euler number, which in the way we are doing it now should always be 1 (one blob, no holes)
 
     cout << endl;
     cout << "Area: " << area << " units squared" << endl;
@@ -174,6 +170,22 @@ double calculateCircularity (Mat & src, vector<Point> & contour) {
     Moments m = moments(contour, true);
     Point centroid(m.m10/m.m00, m.m01/m.m00);
 
-    return 0.0;
+    for(int x = 0; x < src.rows; x ++ ) {
+        for(int y = 0; y < src.cols; y ++ ) {
+            if (src.at<Vec3b>(x,y)[0] != 0){
+                a += (x - centroid.y) * (x - centroid.y);
+                b += (x - centroid.y) * (y - centroid.x);
+                c += (y - centroid.x) * (y - centroid.x);
+            }
+        }
+    }
+    b *= 2;
+    double first_term = ((a - c)/2) * ((a - c) / sqrt((a - c) * (a - c) + b * b));
+    double double_term = (b/2) * (b / sqrt((a - c) * (a - c) + b * b));
+
+    double emin = (a + c) /2 - first_term - double_term;
+    double emax = (a + c) /2 + first_term + double_term;
+
+    return emin / emax;
 
 }

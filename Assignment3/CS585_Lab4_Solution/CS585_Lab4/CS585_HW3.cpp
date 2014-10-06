@@ -33,22 +33,25 @@ void findBiggestContour (Mat &, vector<vector<Point>> &, vector<Vec4i> &, int & 
 int calculateEulerNumber(Mat &);
 double getOrientation (vector<Point>);
 double calculateCircularity (Mat & src, vector<Point> & contour);
-void findRedFolds(Mat & src);
+void part3(Mat & src);
 void thinningIteration(Mat& im, int iter);
 void thinning(Mat& im);
-void part1(Mat & img);
+double* part1(Mat & img, bool);
+void part4(Mat & img);
 
 int main(int argc, char **argv)
 {
 
 	// read image as grayscale
-    Mat img = imread("bcancer1.png"); if(!img.data) {
+    Mat img = imread("bcancer3.0.png"); if(!img.data) {
         cout << "File not found" << std::endl;
         return -1;
     }
 
-    part1(img);
-    //findRedFolds(img);
+
+    part1(img,  true);
+    //part3(img);
+    //part4(img);
     namedWindow("Original");
     imshow("Original", img);	// note img_bw is inverted here, as original processing made the forground white
 
@@ -57,7 +60,29 @@ int main(int argc, char **argv)
 }
 
 
-void part1(Mat & img){
+void part4(Mat & img) {
+
+    vector<Mat> images;
+    images.push_back(imread("bcancer1.png"));
+    images.push_back(imread("bcancer2.png"));
+    images.push_back(imread("bcancer3.png"));
+    images.push_back(imread("bcancer4.png"));
+
+    vector<double *> results;
+    for (int i = 0; i < images.size(); i++ ) {
+        results.push_back(part1(images[i], false));
+    }
+    //for (int i = 0; i < images.size(); i++ ) {
+        //for(int a = 0; a < 2; a++) {
+            //cout << images[i][a] << " " ;
+        //}
+        //cout << endl;
+    //}
+
+}
+
+
+double * part1(Mat & img, bool showWindow = true){
     Mat im_gray;
     Mat binary;
 
@@ -65,8 +90,6 @@ void part1(Mat & img){
 
 	//// invert the image
     bitwise_not ( im_gray, im_gray );
-
-
     convertToBinary(im_gray.clone(), binary);
 
     vector<vector<Point>> contours;
@@ -84,29 +107,38 @@ void part1(Mat & img){
     //// get information about the object:
     int area = maxsize;
     double orientation = getOrientation(contours[maxind]); // angle that the axis of least inertia makes with x-axis
-    double circulatiry = calculateCircularity (contour_output, contours[maxind]) ; // Emin/Emax
+    double circularity = calculateCircularity (contour_output, contours[maxind]) ; // Emin/Emax
     double perimeter = arcLength(contours[maxind],1); // perimeter of largest contour
-    double euler = calculateEulerNumber(binary);	// euler number, which in the way we are doing it now should always be 1 (one blob, no holes)
+    double euler = calculateEulerNumber(binary);// euler number, which in the way we are doing it now should always be 1 (one blob, no holes)
 
     cout << endl;
     cout << "Area: " << area << " units squared" << endl;
     cout << "Orientation: " << orientation << " degrees" << endl;
-    cout << "Circularity: " << circulatiry << " units" << endl;
+    cout << "Circularity: " << circularity << " units" << endl;
     cout << "Length of Perimeter: " << perimeter << " units" << endl;
     cout << "Compactness: " << perimeter*perimeter/area << " units" << endl;
     cout << "Euler number: " << euler << " units" << endl;
 
-	//// create windows
-    namedWindow("Thresh");
-    namedWindow("Contour");
+    if (showWindow){
+        //// create windows
+        namedWindow("Thresh");
+        namedWindow("Contour");
 
-    moveWindow("Thresh", 30,190);
-    moveWindow("Contour", 760,190);
-    imshow("Thresh",binary);	// note img_bw is inverted here, as original processing made the forground white
-    imshow("Contour",contour_output);
+        moveWindow("Thresh", 30,190);
+        moveWindow("Contour", 760,190);
+        imshow("Thresh",binary);	// note img_bw is inverted here, as original processing made the forground white
+        imshow("Contour",contour_output);
+    }
 
-	//show the binary image, as well as the labelled image
+    double * result = new double[5];
+    result[0] = area;
+    result[1] = orientation;
+    result[2] = circularity;
+    result[3] = perimeter;
+    result[4] = euler;
+    return result;
 }
+
 
 int calculateEulerNumber(Mat &src)
 {
@@ -122,7 +154,7 @@ int calculateEulerNumber(Mat &src)
     findContours( src.clone(), contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_NONE );
 
     holes = 0;
-     for(vector<Vec4i>::size_type idx=0; idx<hierarchy.size(); ++idx)
+     for(int idx=0; idx<hierarchy.size(); ++idx)
     {
         if(hierarchy[idx][3] != -1){
             holes ++;
@@ -205,7 +237,7 @@ double calculateCircularity (Mat & src, vector<Point> & contour) {
 
 }
 
-void findRedFolds(Mat & src){
+void part3(Mat & src){
 
     Mat dst;
     Mat channel[3];

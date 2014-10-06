@@ -36,28 +36,34 @@ double calculateCircularity (Mat & src, vector<Point> & contour);
 void findRedFolds(Mat & src);
 void thinningIteration(Mat& im, int iter);
 void thinning(Mat& im);
+void part1(Mat & img);
 
 int main(int argc, char **argv)
 {
+
 	// read image as grayscale
-    Mat img = imread("bcancer3.0.png"); if(!img.data) {
+    Mat img = imread("bcancer1.png"); if(!img.data) {
         cout << "File not found" << std::endl;
         return -1;
     }
+
+    part1(img);
+    //findRedFolds(img);
     namedWindow("Original");
     imshow("Original", img);	// note img_bw is inverted here, as original processing made the forground white
 
-
-    findRedFolds(img);
-
     waitKey();
     return 0;
+}
+
+
+void part1(Mat & img){
     Mat im_gray;
     Mat binary;
 
     cvtColor(img.clone(),im_gray,CV_RGB2GRAY);
 
-	// invert the image
+	//// invert the image
     bitwise_not ( im_gray, im_gray );
 
 
@@ -72,10 +78,10 @@ int main(int argc, char **argv)
     findBiggestContour (binary, contours, hierarchy, maxsize, maxind);
     Mat contour_output = Mat::zeros( binary.size(), CV_8UC3 );
 
-	//// draw filled in largest object in black
+	////// draw filled in largest object in black
     drawContours(contour_output, contours, maxind, 	Scalar::all(255), CV_FILLED, 8, hierarchy);
 
-    // get information about the object:
+    //// get information about the object:
     int area = maxsize;
     double orientation = getOrientation(contours[maxind]); // angle that the axis of least inertia makes with x-axis
     double circulatiry = calculateCircularity (contour_output, contours[maxind]) ; // Emin/Emax
@@ -93,15 +99,13 @@ int main(int argc, char **argv)
 	//// create windows
     namedWindow("Thresh");
     namedWindow("Contour");
+
     moveWindow("Thresh", 30,190);
     moveWindow("Contour", 760,190);
-    imshow("Original", img);	// note img_bw is inverted here, as original processing made the forground white
     imshow("Thresh",binary);	// note img_bw is inverted here, as original processing made the forground white
     imshow("Contour",contour_output);
 
 	//show the binary image, as well as the labelled image
-    waitKey();
-    return 0;
 }
 
 int calculateEulerNumber(Mat &src)
@@ -124,7 +128,7 @@ int calculateEulerNumber(Mat &src)
             holes ++;
         }
     }
-    imshow("Original",src);
+    imshow("Original", src);
 
     return bodies - holes;
 }
@@ -315,6 +319,7 @@ void thinning(Mat& im)
 
     im *= 255;
 }
+
 
 
 

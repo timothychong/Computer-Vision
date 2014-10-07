@@ -480,27 +480,6 @@ void thinning(Mat& im)
     im *= 255;
 }
 
-// This function gets the brightest, best correlating position after template matching
-void correlation(Mat & src, Mat & templ, Mat & dest, Point & max, float & maxIntensity) {
-    // use the built in template matching function
-    matchTemplate( src, templ, dest, CV_TM_CCOEFF_NORMED);
-    
-    
-    // get the brightest pixel, representing the best matched location
-    maxIntensity = 0;
-    float temp = 0;
-    
-    for(int x = 0; x < dest.cols; x ++ ) {
-        for(int y = 0; y < dest.rows; y ++ ) {
-            temp = dest.at<float>(y, x);
-            if (temp > maxIntensity && temp > 0.6) {
-                maxIntensity = temp;
-                max = Point(x, y);
-            }
-        }
-    }
-    
-}
 
 
 

@@ -1,0 +1,26 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Express 2012 for Windows Desktop
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Assignment4_Part1", "Assignment4_Part1\Assignment4_Part1.vcxproj", "{FBECEC2C-81B7-4F4D-8B62-61F3BFCD310E}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Assignment4_Part2", "Assignment4_Part2\Assignment4_Part2.vcxproj", "{5A23082D-FDC9-4188-B743-ACFCBC97C6B3}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Win32 = Debug|Win32
+		Release|Win32 = Release|Win32
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{FBECEC2C-81B7-4F4D-8B62-61F3BFCD310E}.Debug|Win32.ActiveCfg = Debug|Win32
+		{FBECEC2C-81B7-4F4D-8B62-61F3BFCD310E}.Debug|Win32.Build.0 = Debug|Win32
+		{FBECEC2C-81B7-4F4D-8B62-61F3BFCD310E}.Release|Win32.ActiveCfg = Release|Win32
+		{FBECEC2C-81B7-4F4D-8B62-61F3BFCD310E}.Release|Win32.Build.0 = Release|Win32
+		{5A23082D-FDC9-4188-B743-ACFCBC97C6B3}.Debug|Win32.ActiveCfg = Debug|Win32
+		{5A23082D-FDC9-4188-B743-ACFCBC97C6B3}.Debug|Win32.Build.0 = Debug|Win32
+		{5A23082D-FDC9-4188-B743-ACFCBC97C6B3}.Release|Win32.ActiveCfg = Release|Win32
+		{5A23082D-FDC9-4188-B743-ACFCBC97C6B3}.Release|Win32.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

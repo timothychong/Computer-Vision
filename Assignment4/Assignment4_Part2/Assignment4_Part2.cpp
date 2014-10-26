@@ -38,11 +38,13 @@ void readImages(String str, String extend, vector<String> &fileVector, int start
 This function determines the name of the images to be read
 */
 
-void semgent2binary(vector<Mat> images, vector<Mat> segmented, vector<vector<Point>> centroids);
+void semgent2binary(vector<Mat> & images, vector<Mat> & segmented, vector<vector<Point>> & centroids);
 /*
 This function does the segmentation of the original image input into a set of binary objects, where
 each object has its own number (non-zero). Only run for the fish data.
 */
+
+
 
 int main()
 {
@@ -54,7 +56,7 @@ int main()
 	String baseName, extend;
 	if (select=="fish"){
 		start_frame = 1;
-		number_of_frames = 3;
+		number_of_frames = 53-1;
 		zeros = 2; // it ranges from frame 01 to 53, 2 digits
 		baseName = "Segmentation_Aqua/2014_aq_segmented ";
 		extend = ".jpg";
@@ -80,7 +82,38 @@ int main()
 	vector<vector<Point>> centroids;
 	semgent2binary(images, segmented, centroids);
 	
+	//cout << "size segmented: " << segmented.size() << endl;
+	//cout << "size centroids: " << centroids.size() << endl;
+	// save the binary images, for reference
 	
+	cout << "Writing binary images (segmented)" << endl;
+	for (int i=1; i< segmented.size()+1; i++){
+		
+		// write out the image file
+		String fileo = "binary_Aqua/binaryAqua_";
+		int digit = (i == 0)? 2 : zeros - 1 - (int)log10(i);
+		
+		ostringstream vv;
+		vv << i;
+		fileo.append(string(digit, '0'));
+		fileo.append(string(vv.str()));
+		fileo.append(string(".jpg"));
+
+		
+		// draw on the centroid for saving purposes
+		Mat output;// = Mat::zeros(segmented[i].size(), CV_8UC3);
+		cvtColor(segmented[i-1],output,CV_GRAY2BGR);
+		
+		// draw the centroids
+		for (int j=0; j<centroids[i-1].size(); j++){
+			circle(output, centroids[i-1][j], 2, Scalar(0,0,255), -1, 8);
+		}
+        imwrite(fileo, output);
+	}
+
+	
+	// now run the tracking process
+
 
 	
 	char key = waitKey(0);
@@ -111,7 +144,7 @@ void readImages(String str, String extend, vector<String> &fileVector, int start
 
 }
 
-void semgent2binary(vector<Mat> images, vector<Mat> segmented, vector<vector<Point>> centroids){
+void semgent2binary(vector<Mat> & images, vector<Mat> & segmented, vector<vector<Point>> & centroids){
 	//namedWindow("window");
 
 	for (int im=0; im<images.size(); im++){
@@ -131,8 +164,17 @@ void semgent2binary(vector<Mat> images, vector<Mat> segmented, vector<vector<Poi
 				}
 			}
 		}
+
+		// dilate and erode it slightly for better fills
+		int erosion_size = 1;
+		int dilation_size = 1;
+		Mat element = getStructuringElement( MORPH_RECT,
+                                       Size( 2*erosion_size + 1, 2*erosion_size+1 ),
+                                       Point( erosion_size, erosion_size ) );
 		
-		// binary.push_back efeective
+		dilate(binary, binary, element);
+		erode(binary, binary, element);
+		
 		imshow("segmented",binary);
 
 		// now run contours (fill with according color)
@@ -141,7 +183,7 @@ void semgent2binary(vector<Mat> images, vector<Mat> segmented, vector<vector<Poi
 		Mat contour_output = Mat::zeros(binary.size(), CV_8UC1);
 		
 		//decent, but perhaps use canny edges here
-		int thresh = 100;
+		//int thresh = 100;
 		//Canny( binary, binary, thresh, thresh*2, 3);
 		
 		// find and fill each contour with an increasing number
@@ -162,7 +204,6 @@ void semgent2binary(vector<Mat> images, vector<Mat> segmented, vector<vector<Poi
 			// fill the object with the according color
 			//drawContours(contour_output, contours, i, i*2+50, CV_FILLED, 8, hierarchy);
 			drawContours(finalSegmented, contours, i, i*4+50, CV_FILLED, 8, hierarchy);
-			// push it onto the vector
 
 			//push on the centroid
 			Moments m = moments(contours[i], true);
@@ -175,9 +216,8 @@ void semgent2binary(vector<Mat> images, vector<Mat> segmented, vector<vector<Poi
 		}
 
 		centroids.push_back(centroidVec);
-		segmented.push_back(finalSegmented);
+		segmented.push_back(finalSegmented.clone());
 		//imshow("contour output", finalSegmented);
-
 		
 	}
 	

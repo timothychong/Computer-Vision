@@ -180,12 +180,18 @@ int main()
             for (unsigned int a = 0; a < globalBundles.size(); a++ ) {
                 //cout << globalBundles[a] << endl;
             }
-            //Mat canvas = Mat::zeros(height, width, CV_8UC3);
-            //drawObjectDetections(globalBundles, canvas);
+
             Mat output;
             convertFileToMatWithColor(binary_files[i], output, globalBundles);
-            //drawObjectDetections(globalBundles, output);
 
+			// draw the centroids
+			/*
+			for (int j=0; j<centroids.size(); j++){
+				circle(output, centroids[j], 2, Scalar(0,0,255), -1, 8);
+			}
+			*/
+
+			/* draw the tails! */
 
 			// end timing
 			t2=clock();
@@ -199,22 +205,13 @@ int main()
 			fileo.append(string(digit, '0'));
 			fileo.append(string(vv.str()));
 			fileo.append(string(".jpg"));
-			//
-			ostringstream ss;
-			ss << i << ".jpg";
-			//imwrite(string(ss.str()),output); // not writing to sub folder
             imwrite(fileo, output);
+			//imshow("window", output);
 			// printout to terminal
-            cout << "Finished - " << i << ", time: " << t2-t1 << " ms (?)" << endl;
+            cout << "Finished - " << i << ", time: " << t2-t1 << " ms" << endl;
 
         }
-
-        //int abc = 0;
-        //cin >> abc;
-
-        return 0;
-
-        char key = waitKey(0);
+		//char key = waitKey(0);
         return 0;
     }
 

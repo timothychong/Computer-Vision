@@ -20,6 +20,7 @@
 #include <stdio.h>
 #include "filterBundle.h"
 #include <limits>
+#include <time.h>
 
 
 using namespace cv;
@@ -97,10 +98,17 @@ int main()
     //convertFileToMat(binary_files[0], labelled, binary);
     //cout << binary.rows << " " << binary.cols << endl;
 
+	// clock variables:
+	clock_t t1,t2;
+
     for (int i = 1; i < files.size(); i++) {
         //Mat labelled, binary;
         //convertFileToMat(binary_files[i], labelled, binary);
         //imshow(str, binary);
+
+		// timing for clock:
+		t1=clock();
+
         vector<vector<int>> vec;
         centroidsFromFile(files[i], vec);
 
@@ -177,11 +185,27 @@ int main()
             Mat output;
             convertFileToMatWithColor(binary_files[i], output, globalBundles);
             //drawObjectDetections(globalBundles, output);
-            ostringstream ss;
-            ss << i << ".jpg";
-            imwrite(string(ss.str()), output);
-            //imwrite(string(ss.str()), canvas);
-            cout << "Finished - " << i << endl;
+
+
+			// end timing
+			t2=clock();
+			// write out the image file
+			String fileo = "Tracked_Bats/trackBat_";
+
+			int digit = (i == 0)? 2 : number_of_digits - 1 - (int)log10(i);
+			ostringstream vv;
+			vv << i;
+
+			fileo.append(string(digit, '0'));
+			fileo.append(string(vv.str()));
+			fileo.append(string(".jpg"));
+			//
+			ostringstream ss;
+			ss << i << ".jpg";
+			//imwrite(string(ss.str()),output); // not writing to sub folder
+            imwrite(fileo, output);
+			// printout to terminal
+            cout << "Finished - " << i << ", time: " << t2-t1 << " ms (?)" << endl;
 
         }
 
@@ -303,5 +327,4 @@ void drawObjectDetections(vector<FilterBundle> data, Mat& binary3channel)
         circle(binary3channel, center, 3, data[i].color, -1, 8);
     }
 }
-
 

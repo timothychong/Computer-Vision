@@ -50,8 +50,10 @@ void convertFileToMat(String filename, Mat& labelled, Mat& binary);
 */
 void drawObjectDetections(vector<FilterBundle> data, Mat& binary3channel);
 void centroidsFromFile(String filename, vector<vector<int>> & data);
-void convertFileToMatWithColor(String filename, Mat& output, vector<FilterBundle> & bundles);
+void getLabelMatrix(String file, Mat & labelled);
+void convertFileToMatWithColor(Mat & labelled, Mat& output, vector<FilterBundle> & bundles);
 void printMat(Mat & mat);
+void getHashMapArea(Mat & label, map<int,int> & area);
 
 struct greater
 {
@@ -65,7 +67,7 @@ int main()
 
     vector <String> files, binary_files;
     const int number_of_digits = 3;
-    const int number_of_frames = 20;
+    const int number_of_frames = 151;
     const int start_frame = 750;
 
     for ( int i= start_frame; i <  start_frame + number_of_frames; i ++ ) {
@@ -118,6 +120,11 @@ int main()
         }
         vector <int> usedDots;
 
+        Mat labelled;
+        getLabelMatrix(binary_files[i], labelled);
+        map<int, int> area;
+        getHashMapArea(labelled, area);
+
         //For every dots in the previous state
         for (int j = 0; j < globalBundles.size(); j++ ) {
             Point previousPrediction = globalBundles[j].getCurrentPrediction();
@@ -141,10 +148,18 @@ int main()
                     }
                     //Get the new dot's location
                     Point location = Point(vec[k][0], vec[k][1]);
-
+                    float limit = 100;
+                    if ( area.find(k + 1) != area.end() ) {
+                        limit =  sqrt(area[k + 1]);
+                        if (limit > 100) {
+                            cout << limit << endl;
+                        }
+                    }else
+                        cout << "Not found" << endl;
                     //Calculate distance and update shortest distance
                     float distance = sqrt( (prediction.x - location.x) * (prediction.x - location.x) + (prediction.y - location.y) * (prediction.y - location.y));
-                    if (distance < 100 && distance < shortestDistance){
+
+                    if (distance < limit && distance < shortestDistance){
                     //if (distance < shortestDistance){
                         shortestDistance = distance;
                         shortestIndex = k;
@@ -182,7 +197,7 @@ int main()
             }
 
             Mat output;
-            convertFileToMatWithColor(binary_files[i], output, globalBundles);
+            convertFileToMatWithColor(labelled, output, globalBundles);
 
 			// draw the centroids
             drawObjectDetections(globalBundles, output);
@@ -207,7 +222,9 @@ int main()
             cout << "Finished - " << i << ", time: " << t2-t1 << " ms" << endl;
 
         }
-		//char key = waitKey(0);
+        int i = 0;
+        cin >> i;
+        //char key = waitKey(0);
         return 0;
     }
 
@@ -220,8 +237,8 @@ int main()
         }
     }
 
-    void convertFileToMatWithColor(String filename, Mat& output, vector<FilterBundle> & bundles)
-    {
+    void getLabelMatrix(String filename, Mat & labelled) {
+
         //read file
         ifstream infile(filename);
         vector <vector <int>> data;
@@ -229,7 +246,6 @@ int main()
             cout << "Error reading file!";
             return;
         }
-
         //read the comma separated values into a vector of vector of ints
         while (infile)
         {
@@ -238,7 +254,6 @@ int main()
 
             istringstream ss(s);
             vector <int> datarow;
-
             while (ss)
             {
               string srow;
@@ -249,28 +264,47 @@ int main()
             }
             data.push_back(datarow);
         }
-
         //construct the labelled matrix from the vector of vector of ints
-        Mat labelled = Mat::zeros(data.size(), data.at(0).size(), CV_8UC1);
+        labelled = Mat::zeros(data.size(), data.at(0).size(), CV_8UC1);
 
         for (int i = 0; i < labelled.rows; ++i)
             for (int j = 0; j < labelled.cols; ++j)
                 labelled.at<uchar>(i,j) = data.at(i).at(j);
 
+
+    }
+
+    void getHashMapArea(Mat & labelled, map<int,int> & area) {
+        for (int i = 0; i < labelled.rows; ++i)
+            for (int j = 0; j < labelled.cols; ++j){
+                int num = labelled.at<uchar>(i,j);
+                if(num != 0) {
+                    if ( area.find(num) == area.end() ) {
+                      // not found
+                      area[num] = 1;
+                      } else {
+                        // found
+                        area[num] = area[num] + 1;
+                    }
+                }
+            }
+    }
+
+    void convertFileToMatWithColor(Mat & labelled, Mat& output, vector<FilterBundle> & bundles)
+    {
         map<int, Scalar> colorMap;
         for(int a = 0; a < bundles.size(); a++ ) {
             int p = bundles[a].currentIndex;
             colorMap[p] = bundles[a].color;
         }
 
-
         //construct the binary matrix from the labelled matrix
         output = Mat::zeros(labelled.rows, labelled.cols, CV_8UC3);
         for (int i = 0; i < labelled.rows; ++i)
             for (int j = 0; j < labelled.cols; ++j){
                 if (labelled.at<uchar>(i,j) != 0){
-                    if(colorMap.find(data.at(i).at(j)) != colorMap.end()){
-                        Scalar color = colorMap[data.at(i).at(j)];
+                    if(colorMap.find(labelled.at<uchar>(i,j)) != colorMap.end()){
+                        Scalar color = colorMap[labelled.at<uchar>(i,j)];
                         output.at<Vec3b>(i,j)[0] = color[0];
                         output.at<Vec3b>(i,j)[1] = color[1];
                         output.at<Vec3b>(i,j)[2] = color[2];
@@ -318,11 +352,11 @@ void drawObjectDetections(vector<FilterBundle> data, Mat& binary3channel)
         Point center = data[i].getCurrentPrediction();
         //cout << data[i].color<< endl;
         //circle(binary3channel, center, 3, data[i].color, -1, 8);
-        circle(binary3channel, center, 3, Scalar(255,255,255), -1, 8);
+        circle(binary3channel, center, 2, Scalar(255,255,255), -1, 8);
         Point currPred = data[i].getCurrentPrediction();
         vector<Point> points = data[i].getPreviousLocations();
-        for (int j = 0; j < points.size(); j++) {
-            line(binary3channel, currPred, points[j], data[i].color, 1, CV_AA);
+        for (int j = points.size() - 1; j >= 0; j--) {
+            line(binary3channel, currPred, points[j], Scalar(255,255, 255), 1, CV_AA);
             currPred = points[j];
         }
 

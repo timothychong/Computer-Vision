@@ -158,7 +158,7 @@ int main()
 
                     //Calculate distance and update shortest distance
                     float distance = sqrt( (prediction.x - location.x) * (prediction.x - location.x) + (prediction.y - location.y) * (prediction.y - location.y));
-                    if (distance < 100 && distance < shortestDistance){
+                    if (distance < 20 && distance < shortestDistance){
                     //if (distance < shortestDistance){
                         shortestDistance = distance;
                         shortestIndex = k;

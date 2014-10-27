@@ -29,25 +29,8 @@ using namespace std;
 #define width 1024
 #define height 1024
 
-/**
-	Reads the label maps contained in the text file and converts the label maps
-	into a labelled matrix, as well as a binary image containing the segmented objects
 
-	@param filename The filename string
-	@param labelled The matrix that will contain the object label information
-		Background is labelled 0, and object labels start at 1
-	@param binary The matrix that will contain the segmented objects that can be displayed
-		Background is labelled 0, and objects are labelled 255
-*/
 void convertFileToMat(String filename, Mat& labelled, Mat& binary);
-
-/**
-	Reads the x-y object detections from the text file and draws in on a black and white image
-
-	@param filename The filename string
-	@param binary3channel The 3 channel image corresponding to the 1 channel binary image outputted
-		by convertFileToMat. The object detection positions will be drawn on this image
-*/
 void drawObjectDetections(vector<FilterBundle> data, Mat& binary3channel);
 void centroidsFromFile(String filename, vector<vector<int>> & data);
 void getLabelMatrix(String file, Mat & labelled);
@@ -55,6 +38,7 @@ void convertFileToMatWithColor(Mat & labelled, Mat& output, vector<FilterBundle>
 void printMat(Mat & mat);
 void getHashMapArea(Mat & label, map<int,int> & area);
 
+// struct use for easy comparison
 struct greater
 {
     template<class T>
@@ -69,7 +53,8 @@ int main()
     const int number_of_digits = 3;
     const int number_of_frames = 151;
     const int start_frame = 750;
-
+	
+	// get the proper name of the original sequences, ie get correct leading zeros
     for ( int i= start_frame; i <  start_frame + number_of_frames; i ++ ) {
         String str = "Localization_Bats/CS585Bats-Localization_frame000000";
         String str_binary = "Segmentation_Bats/CS585Bats-Segmentation_frame000000";
@@ -88,27 +73,21 @@ int main()
         files.push_back(str);
         binary_files.push_back(str_binary);
     }
+    //allocate the global data for all objects
     vector<FilterBundle> globalBundles;
-
     vector<vector<int>> initialVec;
     centroidsFromFile(files[0], initialVec);
 
     for(int a = 0; a < initialVec.size(); a++) {
         globalBundles.push_back(FilterBundle(Point(initialVec[a][0],initialVec[a][1])));
     }
-    //Mat labelled, binary;
-    //convertFileToMat(binary_files[0], labelled, binary);
-    //cout << binary.rows << " " << binary.cols << endl;
-
+    
 	// clock variables:
 	clock_t t1,t2;
 
+	// run for each frame i
     for (int i = 1; i < files.size(); i++) {
-        //Mat labelled, binary;
-        //convertFileToMat(binary_files[i], labelled, binary);
-        //imshow(str, binary);
 
-		// timing for clock:
 		t1=clock();
 
         vector<vector<int>> vec;
@@ -130,7 +109,6 @@ int main()
             Point previousPrediction = globalBundles[j].getCurrentPrediction();
             //Make a prediction of the new dot
             Point prediction = globalBundles[j].predict();
-            //cout << "Working on " << previousPrediction.x << " " << previousPrediction.y << " Predict to be: " << prediction.x << " " << prediction.y << endl;
             //If the prediction if out of bound. Don't look for new dot
             if (prediction.x >= width || prediction.y >= height || prediction.x < 0 || prediction.y < 0){
                 //cout << "Object going out of bound" << endl;
@@ -168,7 +146,6 @@ int main()
             //If a shortest distance is found
             if (shortestIndex != -1){
                 Point measurement = Point(vec[shortestIndex][0], vec[shortestIndex][1]);
-                //cout << "Updating: " << previousPrediction.x << " " << previousPrediction.y << " to " << measurement.x << " "  << measurement.y << endl;;
                 //Take it out from the leftovers (to be deleted)
                 tempGlobal.erase(remove(tempGlobal.begin(), tempGlobal.end(), j), tempGlobal.end());
                 globalBundles[j].currentIndex = shortestIndex + 1;
@@ -199,11 +176,8 @@ int main()
             Mat output;
             convertFileToMatWithColor(labelled, output, globalBundles);
 
-			// draw the centroids
+	    	// draw the centroids
             drawObjectDetections(globalBundles, output);
-
-			/* draw the tails! */
-
 			// end timing
 			t2=clock();
 			// write out the image file
@@ -217,7 +191,6 @@ int main()
 			fileo.append(string(vv.str()));
 			fileo.append(string(".jpg"));
             imwrite(fileo, output);
-			//imshow("window", output);
 			// printout to terminal
             cout << "Finished - " << i << ", time: " << t2-t1 << " ms" << endl;
 
@@ -270,10 +243,9 @@ int main()
         for (int i = 0; i < labelled.rows; ++i)
             for (int j = 0; j < labelled.cols; ++j)
                 labelled.at<uchar>(i,j) = data.at(i).at(j);
-
-
     }
-
+	
+	// calculate and use area of object
     void getHashMapArea(Mat & labelled, map<int,int> & area) {
         for (int i = 0; i < labelled.rows; ++i)
             for (int j = 0; j < labelled.cols; ++j){
@@ -317,6 +289,7 @@ int main()
         }
 }
 
+// read in centroid data from file
 void centroidsFromFile(String filename, vector<vector<int>> & data) {
 	ifstream infile(filename);
 	if (!infile){
@@ -344,14 +317,14 @@ void centroidsFromFile(String filename, vector<vector<int>> & data) {
 	}
 }
 
+// draw the centroids and tails for each object of the given frame
 void drawObjectDetections(vector<FilterBundle> data, Mat& binary3channel)
 {
-    //draw red circles on the image
+    //draw the tails and centroids on each object
     for (int i = 0; i < data.size(); ++i)
     {
         Point center = data[i].getCurrentPrediction();
-        //cout << data[i].color<< endl;
-        //circle(binary3channel, center, 3, data[i].color, -1, 8);
+        // draw centroid circle
         circle(binary3channel, center, 2, Scalar(255,255,255), -1, 8);
         Point currPred = data[i].getCurrentPrediction();
         vector<Point> points = data[i].getPreviousLocations();
@@ -359,8 +332,6 @@ void drawObjectDetections(vector<FilterBundle> data, Mat& binary3channel)
             line(binary3channel, currPred, points[j], Scalar(255,255, 255), 1, CV_AA);
             currPred = points[j];
         }
-
-
     }
 }
 

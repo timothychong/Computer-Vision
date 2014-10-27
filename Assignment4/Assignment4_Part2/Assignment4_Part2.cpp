@@ -264,7 +264,7 @@ void drawObjectDetections(vector<FilterBundle> data, Mat& binary3channel)
         circle(binary3channel, center, 2, Scalar(255,255,255), -1, 8);
         Point currPred = data[i].getCurrentPrediction();
         vector<Point> points = data[i].getPreviousLocations();
-        for (int j = 0; j < points.size(); j++) {
+        for (int j = points.size() - 1; j >= 0; j--) {
             //Scalar c = data[i].color;
             //Scalar s = Scalar(c[0] + 10, c[1] + 10, c[2] + 10);
             Scalar s = Scalar(255,255,255);

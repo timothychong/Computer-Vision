@@ -144,8 +144,8 @@ int main()
 
                     //Calculate distance and update shortest distance
                     float distance = sqrt( (prediction.x - location.x) * (prediction.x - location.x) + (prediction.y - location.y) * (prediction.y - location.y));
-                    //if (distance < 2000 && distance < shortestDistance){
-                    if (distance < shortestDistance){
+                    if (distance < 100 && distance < shortestDistance){
+                    //if (distance < shortestDistance){
                         shortestDistance = distance;
                         shortestIndex = k;
                     }
@@ -185,11 +185,7 @@ int main()
             convertFileToMatWithColor(binary_files[i], output, globalBundles);
 
 			// draw the centroids
-			/*
-			for (int j=0; j<centroids.size(); j++){
-				circle(output, centroids[j], 2, Scalar(0,0,255), -1, 8);
-			}
-			*/
+            drawObjectDetections(globalBundles, output);
 
 			/* draw the tails! */
 
@@ -321,7 +317,16 @@ void drawObjectDetections(vector<FilterBundle> data, Mat& binary3channel)
     {
         Point center = data[i].getCurrentPrediction();
         //cout << data[i].color<< endl;
-        circle(binary3channel, center, 3, data[i].color, -1, 8);
+        //circle(binary3channel, center, 3, data[i].color, -1, 8);
+        circle(binary3channel, center, 3, Scalar(255,255,255), -1, 8);
+        Point currPred = data[i].getCurrentPrediction();
+        vector<Point> points = data[i].getPreviousLocations();
+        for (int j = 0; j < points.size(); j++) {
+            line(binary3channel, currPred, points[j], data[i].color, 1, CV_AA);
+            currPred = points[j];
+        }
+
+
     }
 }
 
